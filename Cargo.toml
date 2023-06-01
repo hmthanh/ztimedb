@@ -1,21 +1,12 @@
 [package]
 name = "ztimedb"
 version = "0.1.0"
+authors = ["Sam Samai <sam@studio2pi.com.au>"]
 edition = "2021"
-authors = ["ThanhHM2 <thanhhm2@gmail.com>"]
-readme = "README.md"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+publish = false
 
 [workspace]
 members = [".", "api", "service", "entity", "migration"]
 
 [dependencies]
 actix-example-api = { path = "api" }
-# tokio = { version = "1.28.2", features = ["full"] }
-# tokio-postgres = "0.7"
-# actix-web = "4.3.1"
-# dotenv="0.15.0"
-
-
-[dev-dependencies]
