@@ -1,86 +1,97 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use serde::Deserialize;
-
+// Stops the client from outputing a huge number of warnings during compilation.
 #[allow(warnings, unused)]
-mod db;
-
-use db::*;
-
-#[get("/users")]
-async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
-    let users = client.user().find_many(vec![]).exec().await.unwrap();
-
-    HttpResponse::Ok().json(users)
+mod prisma;
+ 
+use prisma::PrismaClient;
+use prisma_client_rust::NewClientError;
+ 
+#[tokio::main]
+async fn main() {
+    let client: Result<PrismaClient, NewClientError> = PrismaClient::_builder().build().await;
 }
+// use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+// use serde::Deserialize;
 
-#[derive(Deserialize)]
-struct CreateUserRequest {
-    display_name: String,
-}
+// #[allow(warnings, unused)]
+// mod db;
 
-#[post("/user")]
-async fn create_user(
-    client: web::Data<PrismaClient>,
-    body: web::Json<CreateUserRequest>,
-) -> impl Responder {
-    let user = client
-        .user()
-        .create(body.display_name.to_string(), vec![])
-        .exec()
-        .await
-        .unwrap();
+// use db::*;
 
-    HttpResponse::Ok().json(user)
-}
+// #[get("/users")]
+// async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
+//     let users = client.user().find_many(vec![]).exec().await.unwrap();
 
-#[get("/posts")]
-async fn get_posts(client: web::Data<PrismaClient>) -> impl Responder {
-    let posts = client.post().find_many(vec![]).exec().await.unwrap();
+//     HttpResponse::Ok().json(users)
+// }
 
-    HttpResponse::Ok().json(posts)
-}
+// #[derive(Deserialize)]
+// struct CreateUserRequest {
+//     display_name: String,
+// }
 
-#[derive(Deserialize)]
-struct CreatePostRequest {
-    content: String,
-    user_id: String,
-}
+// #[post("/user")]
+// async fn create_user(
+//     client: web::Data<PrismaClient>,
+//     body: web::Json<CreateUserRequest>,
+// ) -> impl Responder {
+//     let user = client
+//         .user()
+//         .create(body.display_name.to_string(), vec![])
+//         .exec()
+//         .await
+//         .unwrap();
 
-#[post("/post")]
-async fn create_post(
-    client: web::Data<PrismaClient>,
-    body: web::Json<CreatePostRequest>,
-) -> impl Responder {
-    let post = client
-        .post()
-        .create(
-            body.content.to_string(),
-            user::id::equals(body.user_id.to_string()),
-            vec![],
-        )
-        .exec()
-        .await
-        .unwrap();
+//     HttpResponse::Ok().json(user)
+// }
 
-    HttpResponse::Ok().json(post)
-}
+// #[get("/posts")]
+// async fn get_posts(client: web::Data<PrismaClient>) -> impl Responder {
+//     let posts = client.post().find_many(vec![]).exec().await.unwrap();
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let client = web::Data::new(PrismaClient::_builder().build().await.unwrap());
+//     HttpResponse::Ok().json(posts)
+// }
 
-    #[cfg(debug_assertions)]
-    client._db_push().await.unwrap();
+// #[derive(Deserialize)]
+// struct CreatePostRequest {
+//     content: String,
+//     user_id: String,
+// }
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(client.clone())
-            .service(get_users)
-            .service(create_user)
-            .service(get_posts)
-            .service(create_post)
-    })
-    .bind(("127.0.0.1", 3001))?
-    .run()
-    .await
-}
+// #[post("/post")]
+// async fn create_post(
+//     client: web::Data<PrismaClient>,
+//     body: web::Json<CreatePostRequest>,
+// ) -> impl Responder {
+//     let post = client
+//         .post()
+//         .create(
+//             body.content.to_string(),
+//             user::id::equals(body.user_id.to_string()),
+//             vec![],
+//         )
+//         .exec()
+//         .await
+//         .unwrap();
+
+//     HttpResponse::Ok().json(post)
+// }
+
+// #[actix_web::main]
+// async fn main() -> std::io::Result<()> {
+//     let client = web::Data::new(PrismaClient::_builder().build().await.unwrap());
+
+//     #[cfg(debug_assertions)]
+//     client._db_push().await.unwrap();
+
+//     HttpServer::new(move || {
+//         App::new()
+//             .app_data(client.clone())
+//             .service(get_users)
+//             .service(create_user)
+//             .service(get_posts)
+//             .service(create_post)
+//     })
+//     .bind(("127.0.0.1", 3001))?
+//     .run()
+//     .await
+// }
