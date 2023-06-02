@@ -22,7 +22,7 @@ CREATE TABLE todos
 ```
 
 ```bash
-diesel migration generate create_todo_table
+diesel migration generate create_bandwidth
 ```
 
 ### Run migration
