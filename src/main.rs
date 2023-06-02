@@ -1,46 +1,86 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder, Result};
-use serde::{Serialize};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use serde::Deserialize;
 
-mod api;
-mod models;
-mod repository;
+#[allow(warnings, unused)]
+mod db;
 
+use db::*;
 
-#[derive(Serialize)]
-pub struct Response {
-    pub message: String,
+#[get("/users")]
+async fn get_users(client: web::Data<PrismaClient>) -> impl Responder {
+    let users = client.user().find_many(vec![]).exec().await.unwrap();
+
+    HttpResponse::Ok().json(users)
 }
 
-#[get("/health")]
-async fn healthcheck() -> impl Responder {
-    let response = Response {
-        message: "Everything is working fine".to_string(),
-    };
-    HttpResponse::Ok().json(response)
+#[derive(Deserialize)]
+struct CreateUserRequest {
+    display_name: String,
 }
 
+#[post("/user")]
+async fn create_user(
+    client: web::Data<PrismaClient>,
+    body: web::Json<CreateUserRequest>,
+) -> impl Responder {
+    let user = client
+        .user()
+        .create(body.display_name.to_string(), vec![])
+        .exec()
+        .await
+        .unwrap();
 
-async fn not_found() -> Result<HttpResponse> {
-    let response = Response {
-        message: "Resource not found".to_string(),
-    };
-    Ok(HttpResponse::NotFound().json(response))
+    HttpResponse::Ok().json(user)
+}
+
+#[get("/posts")]
+async fn get_posts(client: web::Data<PrismaClient>) -> impl Responder {
+    let posts = client.post().find_many(vec![]).exec().await.unwrap();
+
+    HttpResponse::Ok().json(posts)
+}
+
+#[derive(Deserialize)]
+struct CreatePostRequest {
+    content: String,
+    user_id: String,
+}
+
+#[post("/post")]
+async fn create_post(
+    client: web::Data<PrismaClient>,
+    body: web::Json<CreatePostRequest>,
+) -> impl Responder {
+    let post = client
+        .post()
+        .create(
+            body.content.to_string(),
+            user::id::equals(body.user_id.to_string()),
+            vec![],
+        )
+        .exec()
+        .await
+        .unwrap();
+
+    HttpResponse::Ok().json(post)
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let todo_db = repository::database::Database::new();
-    let app_data = web::Data::new(todo_db);
+    let client = web::Data::new(PrismaClient::_builder().build().await.unwrap());
 
-    HttpServer::new(move ||
+    #[cfg(debug_assertions)]
+    client._db_push().await.unwrap();
+
+    HttpServer::new(move || {
         App::new()
-            .app_data(app_data.clone())
-            .configure(api::api::config)
-            .service(healthcheck)
-            .default_service(web::route().to(not_found))
-            .wrap(actix_web::middleware::Logger::default())
-    )
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+            .app_data(client.clone())
+            .service(get_users)
+            .service(create_user)
+            .service(get_posts)
+            .service(create_post)
+    })
+    .bind(("127.0.0.1", 3001))?
+    .run()
+    .await
 }
